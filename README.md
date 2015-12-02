@@ -6,9 +6,17 @@
 
 ## Introduction
 
-Say is a logging and metrics-reporting library. Applications using Say print
-both their logs and metrics on standard output in an unified format. Say also
-provides tools to easily handle this output.
+Say is a logging and metrics-reporting library.
+
+Basically logs and metrics are both a way to report how an application is
+behaving. So the idea is to print both logs and metrics to standard output.
+
+When developing, applications using Say are verbose and easier to debug.
+In production, application's output is piped to a listener application that
+handles the logs and metrics.
+
+Package say provides functions to print logs and metrics while package listen
+provides functions to build listener applications.
 
 Say is particularly effective to manage the logs and metrics of a fleet of Go
 applications. It is less suited for libraries or distributable applications.
@@ -82,7 +90,7 @@ Listeners are very easy to build thanks to the
 
 ### Developer friendly
 
-Applications using Say are verbose since metrics are printed on standard output
+Applications using Say are verbose since metrics are printed to standard output
 which tremendously helps debugging.
 
 Say also has a cool API with many nice things that makes the developer's life
