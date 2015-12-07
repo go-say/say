@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"time"
 )
 
 var (
@@ -203,5 +202,3 @@ func scanSayLines(data []byte, atEOF bool) (int, []byte, error) {
 func errorf(format string, args ...interface{}) {
 	errorHandler(fmt.Sprintf("listen: "+format, args...))
 }
-
-var now = time.Now

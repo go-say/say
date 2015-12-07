@@ -252,3 +252,6 @@ func getBuffer() []byte {
 func putBuffer(buf []byte) {
 	bufPool.Put(buf)
 }
+
+// Stubbed out for testing.
+var now = time.Now
