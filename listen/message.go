@@ -141,8 +141,8 @@ func (m *Message) StackTrace() string {
 // DataString returns the raw data string associated with the message.
 func (m *Message) DataString() string { return m.rawData }
 
-// Write writes the Message to w.
-func (m *Message) Write(w io.Writer) (int, error) {
+// WriteTo writes the Message to w.
+func (m *Message) WriteTo(w io.Writer) (int64, error) {
 	t := now()
 	buf := getBuffer()
 	defer putBuffer(buf)
@@ -173,7 +173,8 @@ func (m *Message) Write(w io.Writer) (int, error) {
 	}
 	buf = append(buf, '\n')
 
-	return w.Write(buf)
+	n, err := w.Write(buf)
+	return int64(n), err
 }
 
 func appendDigits(buf []byte, n, length int) []byte {
@@ -189,8 +190,8 @@ func appendDigits(buf []byte, n, length int) []byte {
 
 const digits = "0123456789"
 
-// WriteJSON writes the JSON-encoded form of the Message to w.
-func (m *Message) WriteJSON(w io.Writer) (int, error) {
+// WriteJSONTo writes the JSON-encoded form of the Message to w.
+func (m *Message) WriteJSONTo(w io.Writer) (int, error) {
 	buf := getBuffer()
 	defer putBuffer(buf)
 

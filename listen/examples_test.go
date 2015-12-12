@@ -30,7 +30,7 @@ func Example() {
 			// Email the errors or send them to your favorite webservice.
 			fallthrough
 		case listen.TypeInfo, listen.TypeWarning:
-			_, err = m.Write(f)
+			_, err = m.WriteTo(f)
 			if err != nil {
 				_ = f.Close()
 				log.Printf("error: cannot write to file: %v", err)

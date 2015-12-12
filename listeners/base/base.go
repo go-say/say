@@ -77,9 +77,9 @@ func main() {
 		case listen.TypeInfo, listen.TypeWarning,
 			listen.TypeError, listen.TypeFatal:
 			if json {
-				_, err = m.WriteJSON(f)
+				_, err = m.WriteJSONTo(f)
 			} else {
-				_, err = m.Write(f)
+				_, err = m.WriteTo(f)
 			}
 			if err != nil {
 				_ = f.Close()

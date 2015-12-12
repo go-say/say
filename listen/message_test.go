@@ -236,7 +236,7 @@ func TestDataString(t *testing.T) {
 	})
 }
 
-func TestWriteMessage(t *testing.T) {
+func TestMessageWriteTo(t *testing.T) {
 	log := new(say.Logger)
 	log.SkipStackFrames(-1)
 	tests := []test{
@@ -267,21 +267,21 @@ func TestWriteMessage(t *testing.T) {
 	buf := new(bytes.Buffer)
 	testMessage(t, tests, func(m *Message, want interface{}) {
 		out := want.(string)
-		n, err := m.Write(buf)
+		n, err := m.WriteTo(buf)
 		got := buf.String()
-		if n != len(got) || err != nil {
-			t.Errorf("Message.Write = (%d, %v), want (%d, %v)",
+		if int(n) != len(got) || err != nil {
+			t.Errorf("Message.WriteTo = (%d, %v), want (%d, %v)",
 				n, err, len(got), nil)
 		}
 		if got != out {
-			t.Errorf("Invalid Message.Write output\n got: %q\nwant: %q",
+			t.Errorf("Invalid Message.WriteTo output\n got: %q\nwant: %q",
 				got, out)
 		}
 		buf.Reset()
 	})
 }
 
-func TestWriteJSONMessage(t *testing.T) {
+func TestMessageWriteJSONTo(t *testing.T) {
 	log := new(say.Logger)
 	log.SkipStackFrames(-1)
 	tests := []test{
@@ -312,14 +312,14 @@ func TestWriteJSONMessage(t *testing.T) {
 	buf := new(bytes.Buffer)
 	testMessage(t, tests, func(m *Message, want interface{}) {
 		out := want.(string)
-		n, err := m.WriteJSON(buf)
+		n, err := m.WriteJSONTo(buf)
 		got := buf.String()
 		if n != len(got) || err != nil {
-			t.Errorf("Message.Write = (%d, %v), want (%d, %v)",
+			t.Errorf("Message.WriteJSONTo = (%d, %v), want (%d, %v)",
 				n, err, len(got), nil)
 		}
 		if got != out {
-			t.Errorf("Invalid Message.WriteJSON output\n got: %s\nwant: %s",
+			t.Errorf("Invalid Message.WriteJSONTo output\n got: %s\nwant: %s",
 				got, out)
 		}
 		buf.Reset()
