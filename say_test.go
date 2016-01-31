@@ -11,64 +11,9 @@ import (
 	"time"
 )
 
-var testTraces string
-
 func init() {
-	setPackageErrorStack()
-	runtimeStack = func(traces []byte, _ bool) int {
-		for i := range traces {
-			if i == len(testTraces) {
-				return i
-			}
-			traces[i] = testTraces[i]
-		}
-		return len(traces)
-	}
+	SkipStackFrames(-1)
 	exit = func(int) {}
-}
-
-func setPackageErrorStack() {
-	testTraces = "goroutine 1 [running]:\n" +
-		"say.writeStackTrace()\n" +
-		"	say.go:6 +0x0\n" +
-		"say.(*Logger).error()\n" +
-		"	say.go:5 +0x0\n" +
-		"say.(*Logger).Error()\n" +
-		"	say.go:4 +0x0\n" +
-		"say.Error()\n" +
-		"	say.go:3 +0x0\n" +
-		"github.com/me/myapp.myFunc()\n" +
-		"	main.go:2 +0x0\n" +
-		"github.com/me/myapp.main()\n" +
-		"	main.go:1 +0x0\n"
-}
-
-func setLoggerErrorStack() {
-	testTraces = "goroutine 1 [running]:\n" +
-		"say.writeStackTrace()\n" +
-		"	say.go:5 +0x0\n" +
-		"say.(*Logger).error()\n" +
-		"	say.go:4 +0x0\n" +
-		"say.(*Logger).Error()\n" +
-		"	say.go:3 +0x0\n" +
-		"github.com/me/myapp.myFunc()\n" +
-		"	main.go:2 +0x0\n" +
-		"github.com/me/myapp.main()\n" +
-		"	main.go:1 +0x0\n"
-}
-
-func setLoggerDataStack() {
-	testTraces = "goroutine 1 [running]:\n" +
-		"say.writeStackTrace()\n" +
-		"	say.go:5 +0x0\n" +
-		"say.(*Logger).sayError()\n" +
-		"	say.go:4 +0x0\n" +
-		"say.(*Logger).Event()\n" +
-		"	say.go:3 +0x0\n" +
-		"github.com/me/myapp.myFunc()\n" +
-		"	main.go:2 +0x0\n" +
-		"github.com/me/myapp.main()\n" +
-		"	main.go:1 +0x0\n"
 }
 
 func expect(t *testing.T, f func(), lines []string) {
@@ -78,7 +23,6 @@ func expect(t *testing.T, f func(), lines []string) {
 
 	f()
 	SetData()
-	SkipStackFrames(0)
 
 	want := strings.Join(lines, "\n") + "\n"
 	got := buf.String()
@@ -194,18 +138,8 @@ func TestError(t *testing.T) {
 		Error("Test error")
 		Error("")
 	}, []string{
-		"ERROR Test error ",
-		"       ",
-		"      github.com/me/myapp.myFunc() ",
-		"      	main.go:2 +0x0 ",
-		"      github.com/me/myapp.main() ",
-		"      	main.go:1 +0x0",
-		"ERROR  ",
-		"       ",
-		"      github.com/me/myapp.myFunc() ",
-		"      	main.go:2 +0x0 ",
-		"      github.com/me/myapp.main() ",
-		"      	main.go:1 +0x0",
+		"ERROR Test error",
+		"ERROR ",
 	})
 }
 
@@ -229,20 +163,7 @@ func TestFatal(t *testing.T) {
 	expect(t, func() {
 		Fatal("Test fatal")
 	}, []string{
-		"FATAL Test fatal ",
-		"       ",
-		"      github.com/me/myapp.myFunc() ",
-		"      	main.go:2 +0x0 ",
-		"      github.com/me/myapp.main() ",
-		"      	main.go:1 +0x0",
-	})
-}
-
-func TestInit(t *testing.T) {
-	expect(t, func() {
-		Init("my_app")
-	}, []string{
-		"INIT  my_app",
+		"FATAL Test fatal",
 	})
 }
 
@@ -252,33 +173,14 @@ func TestMultiline(t *testing.T) {
 		Info("\n")
 		Info("\n\n")
 	}, []string{
-		"INFO  foo ",
-		"      bar  ",
-		"      baz",
-		"INFO   ",
+		"INFO  foo",
+		"      bar ",
+		"      baz ",
+		"INFO  ",
 		"      ",
-		"INFO   ",
-		"       ",
+		"INFO  ",
 		"      ",
-	})
-}
-
-func TestEscape(t *testing.T) {
-	expect(t, func() {
-		Info("foo\t| i=1")
-	}, []string{
-		"INFO  foo | i=1",
-	})
-}
-
-func TestNewLogger(t *testing.T) {
-	expect(t, func() {
-		SetData("foo", "bar")
-		SkipStackFrames(-1)
-		log := NewLogger()
-		log.Error("oops")
-	}, []string{
-		`ERROR oops	| foo="bar"`,
+		"      ",
 	})
 }
 
@@ -296,15 +198,13 @@ func TestData(t *testing.T) {
 	})
 }
 
-func TestDataFormat(t *testing.T) {
+func TestNewLogger(t *testing.T) {
 	expect(t, func() {
-		Value("foo", float32(-.61))
-		Value("foo", true)
-		Value("foo", []int{1, 2, 3})
+		SetData("foo", "bar")
+		log := NewLogger()
+		log.Error("oops")
 	}, []string{
-		"VALUE foo:-0.61",
-		"VALUE foo:true",
-		"VALUE foo:[1 2 3]",
+		`ERROR oops	| foo="bar"`,
 	})
 }
 
@@ -317,19 +217,10 @@ func TestTimeHook(t *testing.T) {
 }
 
 func TestInvalidData(t *testing.T) {
-	setLoggerErrorStack()
-	defer setPackageErrorStack()
-
 	expect(t, func() {
 		log := new(Logger)
-		log.SetData("foo")
-		log.Info("foo", "a")
 		log.SkipStackFrames(-1)
-		log.SetData(true, "foo")
-		log.SetData("foo\n", 1)
-		log.SetData("", 1)
-		log.AddData("foo\t", 1)
-		log.AddData("", 1)
+		log.Info("foo", "a")
 		log.Event("")
 		log.Event("f\noo:")
 		log.Event("foo:")
@@ -341,24 +232,8 @@ func TestInvalidData(t *testing.T) {
 		log.Info("foo", true, "foo")
 		log.Info("foo", "foo\t", "bar")
 	}, []string{
-		"ERROR " + errOddNumArgs.Error() + " ",
-		"       ",
-		"      github.com/me/myapp.myFunc() ",
-		"      	main.go:2 +0x0 ",
-		"      github.com/me/myapp.main() ",
-		"      	main.go:1 +0x0",
+		"ERROR " + errOddNumArgs.Error(),
 		"INFO  foo",
-		"ERROR " + errOddNumArgs.Error() + " ",
-		"       ",
-		"      github.com/me/myapp.myFunc() ",
-		"      	main.go:2 +0x0 ",
-		"      github.com/me/myapp.main() ",
-		"      	main.go:1 +0x0",
-		"ERROR " + errKeyNotString.Error(),
-		"ERROR " + errKeyInvalid.Error(),
-		"ERROR " + errKeyEmpty.Error(),
-		"ERROR " + errKeyInvalid.Error(),
-		"ERROR " + errKeyEmpty.Error(),
 		"ERROR " + errKeyEmpty.Error(),
 		"ERROR " + errKeyInvalid.Error(),
 		"ERROR " + errKeyInvalid.Error(),
@@ -366,12 +241,12 @@ func TestInvalidData(t *testing.T) {
 		"ERROR " + errKeyInvalid.Error(),
 		"ERROR " + errKeyInvalid.Error(),
 		"ERROR " + errKeyInvalid.Error(),
-		"INFO  foo",
 		"ERROR " + errOddNumArgs.Error(),
 		"INFO  foo",
 		"ERROR " + errKeyNotString.Error(),
 		"INFO  foo",
 		"ERROR " + errKeyInvalid.Error(),
+		"INFO  foo",
 	})
 }
 
@@ -394,44 +269,61 @@ func TestInvalidKeys(t *testing.T) {
 }
 
 func TestSkipStackFrames(t *testing.T) {
-	expect(t, func() {
-		Error("foo")
-		Fatal("bar")
-		SkipStackFrames(-1)
-		Error("foo")
-		Fatal("bar")
-		SkipStackFrames(1)
-		Error("foo")
-		Fatal("bar")
-		SkipStackFrames(2)
-		Error("foo")
-		Fatal("bar")
-	}, []string{
-		"ERROR foo ",
-		"       ",
-		"      github.com/me/myapp.myFunc() ",
-		"      	main.go:2 +0x0 ",
-		"      github.com/me/myapp.main() ",
-		"      	main.go:1 +0x0",
-		"FATAL bar ",
-		"       ",
-		"      github.com/me/myapp.myFunc() ",
-		"      	main.go:2 +0x0 ",
-		"      github.com/me/myapp.main() ",
-		"      	main.go:1 +0x0",
-		"ERROR foo",
-		"FATAL bar",
-		"ERROR foo ",
-		"       ",
-		"      github.com/me/myapp.main() ",
-		"      	main.go:1 +0x0",
-		"FATAL bar ",
-		"       ",
-		"      github.com/me/myapp.main() ",
-		"      	main.go:1 +0x0",
-		"ERROR foo",
-		"FATAL bar",
-	})
+	tests := []struct {
+		mustHave, mustNotHave []string
+	}{
+		{
+			[]string{"testStackFrames", "TestSkipStackFrames"},
+			nil,
+		},
+		{
+			[]string{"TestSkipStackFrames"},
+			[]string{"testStackFrames"},
+		},
+		{
+			nil,
+			[]string{"TestSkipStackFrames", "testStackFrames"},
+		},
+	}
+
+	for i, tt := range tests {
+		testStackFrames(t, i, tt.mustHave, tt.mustNotHave)
+	}
+}
+
+func testStackFrames(t *testing.T, skip int, mustHave, mustNotHave []string) {
+	buf := new(bytes.Buffer)
+	w := Redirect(buf)
+	defer Redirect(w)
+
+	log := new(Logger)
+	log.SkipStackFrames(skip)
+	log.Error("foo")
+	log.Fatal("bar")
+
+	SkipStackFrames(skip)
+	Error("foo")
+	Fatal("bar")
+	SkipStackFrames(-1)
+
+	mustNotHave = append(mustNotHave, []string{
+		"goroutine",
+		"/say.go:",
+	}...)
+
+	got := buf.String()
+	for _, s := range mustHave {
+		if !strings.Contains(got, s) {
+			t.Errorf("%q does not appear in the stack frames (skip=%d):\n%s",
+				s, skip, got)
+		}
+	}
+	for _, s := range mustNotHave {
+		if strings.Contains(got, s) {
+			t.Errorf("%q should not appear in the stack frames (skip=%d):\n%s",
+				s, skip, got)
+		}
+	}
 }
 
 func TestCaptureStandardLog(t *testing.T) {
@@ -443,38 +335,7 @@ func TestCaptureStandardLog(t *testing.T) {
 	})
 }
 
-func TestCapturePanic(t *testing.T) {
-	expect(t, func() {
-		defer CapturePanic()
-		panic("hello")
-	}, []string{
-		"FATAL hello ",
-		"       ",
-		"      github.com/me/myapp.myFunc() ",
-		"      	main.go:2 +0x0 ",
-		"      github.com/me/myapp.main() ",
-		"      	main.go:1 +0x0",
-	})
-}
-
-func TestLoggerCapturePanic(t *testing.T) {
-	setLoggerErrorStack()
-	defer setPackageErrorStack()
-
-	expect(t, func() {
-		defer new(Logger).CapturePanic()
-		panic("hello")
-	}, []string{
-		"FATAL hello ",
-		"       ",
-		"      github.com/me/myapp.myFunc() ",
-		"      	main.go:2 +0x0 ",
-		"      github.com/me/myapp.main() ",
-		"      	main.go:1 +0x0",
-	})
-}
-
-func TestDataRace(t *testing.T) {
+func TestRace(t *testing.T) {
 	w := Redirect(ioutil.Discard)
 	defer Redirect(w)
 
@@ -527,28 +388,28 @@ func BenchmarkStdData(b *testing.B) {
 }
 
 func BenchmarkInfo(b *testing.B) {
-	Redirect(ioutil.Discard)
+	out = ioutil.Discard
 	for i := 0; i < b.N; i++ {
 		Info("Test message!")
 	}
 }
 
 func BenchmarkInfoData(b *testing.B) {
-	Redirect(ioutil.Discard)
+	out = ioutil.Discard
 	for i := 0; i < b.N; i++ {
 		Info("Test message!", "foo", "bar", "i", 42)
 	}
 }
 
 func BenchmarkWarning(b *testing.B) {
-	Redirect(ioutil.Discard)
+	out = ioutil.Discard
 	for i := 0; i < b.N; i++ {
 		Warning("Test message!")
 	}
 }
 
 func BenchmarkError(b *testing.B) {
-	Redirect(ioutil.Discard)
+	out = ioutil.Discard
 	err := errors.New("bench error")
 	for i := 0; i < b.N; i++ {
 		Error(err)
@@ -556,56 +417,56 @@ func BenchmarkError(b *testing.B) {
 }
 
 func BenchmarkEvent(b *testing.B) {
-	Redirect(ioutil.Discard)
+	out = ioutil.Discard
 	for i := 0; i < b.N; i++ {
 		Event("bench_event")
 	}
 }
 
 func BenchmarkEvents(b *testing.B) {
-	Redirect(ioutil.Discard)
+	out = ioutil.Discard
 	for i := 0; i < b.N; i++ {
 		Events("bench_event", 17)
 	}
 }
 
 func BenchmarkTiming(b *testing.B) {
-	Redirect(ioutil.Discard)
+	out = ioutil.Discard
 	for i := 0; i < b.N; i++ {
 		NewTiming().Say("timing")
 	}
 }
 
 func BenchmarkGauge(b *testing.B) {
-	Redirect(ioutil.Discard)
+	out = ioutil.Discard
 	for i := 0; i < b.N; i++ {
 		Gauge("bench_event", 17.06)
 	}
 }
 
 func BenchmarkData2(b *testing.B) {
-	Redirect(ioutil.Discard)
+	out = ioutil.Discard
 	for i := 0; i < b.N; i++ {
 		Info("Test message!", "a", "b", "i", 57)
 	}
 }
 
 func BenchmarkData3(b *testing.B) {
-	Redirect(ioutil.Discard)
+	out = ioutil.Discard
 	for i := 0; i < b.N; i++ {
 		Info("Test message!", "a", "b", "i", 57, "d", true)
 	}
 }
 
 func BenchmarkData4(b *testing.B) {
-	Redirect(ioutil.Discard)
+	out = ioutil.Discard
 	for i := 0; i < b.N; i++ {
 		Info("Test message!", "a", "b", "i", 57, "d", true, "e", "lol")
 	}
 }
 
 func BenchmarkData5(b *testing.B) {
-	Redirect(ioutil.Discard)
+	out = ioutil.Discard
 	for i := 0; i < b.N; i++ {
 		Info("Test message!", "a", "b", "i", 57, "d", true, "e", "lol", "j", 45)
 	}

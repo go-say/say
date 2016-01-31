@@ -16,16 +16,9 @@ type exampleWriter struct {
 	w **os.File
 }
 
-var (
-	findSpaces   = regexp.MustCompile(` +\n`)
-	findDuration = regexp.MustCompile(`\d+ms`)
-)
+var findDuration = regexp.MustCompile(`\d+ms`)
 
 func (w exampleWriter) Write(p []byte) (int, error) {
-	// Say sometimes inserts spaces before an end of line. Examples eat these
-	// spaces, so let's eat them too!
-	p = findSpaces.ReplaceAll(p, []byte{'\n'})
-
 	// Replace durations.
 	p = findDuration.ReplaceAll(p, []byte("17ms"))
 
@@ -41,14 +34,12 @@ func init() {
 }
 
 func Example() {
-	// The Init function allows the listener app to configure itself, for
-	// example to decide in which file to write logs.
-	defer say.Init("my_app", "version", 1.1).CapturePanic()
+	// Capture panics as FATAL.
+	defer say.CapturePanic()
 
 	say.Info("Getting list of users...")
 	say.Value("user_found", 42)
 	// Output:
-	// INIT  my_app	| version=1.1
 	// INFO  Getting list of users...
 	// VALUE user_found:42
 }
@@ -225,28 +216,6 @@ func ExampleFatal() {
 	f, err := os.Open("foo.txt")
 	say.Fatal(err)           // Print an error only if err is not nil.
 	defer say.Fatal(f.Close) // Call Close and print the error only if not nil.
-}
-
-func ExampleLogger_Init() {
-	log := new(say.Logger)
-	log.Init("my_app", "version", "1.1")
-	// Output:
-	// INIT  my_app	| version="1.1"
-}
-
-func ExampleInit() {
-	say.Init("my_app", "version", "1.1")
-	// Output:
-	// INIT  my_app	| version="1.1"
-}
-
-func ExampleMute() {
-	say.Mute()
-	say.Info("foo") // Print nothing.
-}
-
-func ExampleRedirect() {
-	say.Redirect(os.Stderr) // Redirect output to standard error.
 }
 
 func ExampleLogger_CapturePanic() {

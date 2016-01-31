@@ -3,6 +3,15 @@ Package say is a logging and metrics-reporting library.
 
 See https://github.com/go-say/say for a presentation of the project.
 
+
+Introduction
+
+By default, Say prints all messages (logs and metrics) to standard output.
+
+When a listener is set using SetListener(), messages are handler by the listener
+in a goroutine.
+
+
 Logging functions
 
 Say provides 5 severity levels:

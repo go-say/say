@@ -6,27 +6,28 @@
 
 ## Introduction
 
-Say is a logging and metrics-reporting library.
+Say is a logging and metrics-reporting library that increases developer
+productivity.
 
-Basically logs and metrics are both a way to report how an application is
-behaving. So the idea is to print both logs and metrics to standard output.
+The idea is to print everything - logs and metrics - to standard output by
+default. So that applications using Say are verbose and easier to debug while
+developing.
 
-When developing, applications using Say are verbose and easier to debug.
-In production, application's output is piped to a listener application that
-handles the logs and metrics.
+In production a listener function is usually set so that log lines and metrics
+are handled asynchronously in a goroutine exactly as the developer wants.
+It makes Say extremely fast and flexible.
 
-Package say provides functions to print logs and metrics while package listen
-provides functions to build listener applications.
 
-Say is particularly effective to manage the logs and metrics of a fleet of Go
-applications. It is less suited for libraries or distributable applications.
+## Download
+
+    go get gopkg.in/say.v0
 
 
 ## Example
 
 ```go
 func main() {
-	defer say.CapturePanic() // Catch panics and format the error message.
+	defer say.CapturePanic() // Catch panics as FATAL messages.
 
 	today := time.Now().Format("01/02")
 
@@ -77,13 +78,39 @@ FATAL sql: database is closed
       	/home/me/go/src/main.go:22 +0x269
 ```
 
-While developing, your applications are verbose and easier to debug.
+In production you will usually want to set a listener:
 
-In production, you pipe your application's output with a listener that handles
-your logs and metrics.
+```go
+var prod bool
 
-Listeners are very easy to build thanks to the
-[say/listen package](https://github.com/go-say/say/tree/v0/listen).
+func init() {
+	flag.BoolVar(&prod, "prod", false, "Set to production mode.")
+}
+
+func main() {
+	defer say.CapturePanic()
+
+	f, err := os.Create("my_app.log")
+	if err != nil {
+		panic(err)
+	}
+
+	say.SetListener(func(m *say.Message) {
+		switch m.Type {
+		case say.TypeError, say.TypeFatal:
+			// Send errors by email or to your favorite webservice.
+			fallthrough
+		case say.TypeInfo, say.TypeWarning:
+			// Log to a file.
+			if _, err = m.WriteTo(f); err != nil {
+				panic(err)
+			}
+		}
+	})
+
+	// Your code...
+}
+```
 
 
 ## Features
@@ -91,24 +118,11 @@ Listeners are very easy to build thanks to the
 ### Developer friendly
 
 Applications using Say are verbose since metrics are printed to standard output
-which tremendously helps debugging.
+by default which tremendously helps debugging.
 
 Say also has a cool API with many nice things that makes the developer's life
 easier: errors' stack traces are printed by default, one-liner to time a
-function, simple debugging functions, no boilerplate to define how your logs are
-handled, etc.
-
-
-### Separation of concerns
-
-Say allows you to follow the best practices like the
-[Twelve Factors App](http://12factor.net/logs): Applications using Say simply
-print to standard output. You don't need to define how to handle your logs and
-metrics in every application.
-
-Instead, all your log and metric related logic is defined in your listener
-application. If you want to change the way you handle logs or metrics you don't
-need to update all your applications but just the listener.
+function, simple debugging functions, etc.
 
 
 ### Flexible
@@ -118,44 +132,27 @@ writing logs only if an error happens, sending errors by email, sending
 metrics to a StatsD backend or your favorite webservice, etc.
 
 
+### Lightweight and Fast
+
+Say has been carefully written to be fast and with a low memory footprint. As a
+result, Say is way faster than most logging libraries and is even faster than
+the standard library:
+
+```
+BenchmarkStd-4        2000000     694 ns/op     32 B/op    2 allocs/op
+BenchmarkSay-4        5000000     334 ns/op      0 B/op    0 allocs/op
+
+BenchmarkStdData-4    1000000    1693 ns/op    112 B/op    6 allocs/op
+BenchmarkSayData-4    1000000    1742 ns/op     96 B/op    6 allocs/op
+```
+
+
 ### Simple
 
 Say's output is often deterministic (since there is no timestamp by default).
 So a simple diff of the output of two versions of an application running the
 same tests can provides quick insights of what changed in the behavior of the
 application.
-
-In short, Say's format is pretty simple which brings many advantages: it can be
-implemented in other languages, tools can be built around Say, etc.
-
-
-### Lightweight and Fast
-
-Say just prints to standard output and the code has been carefully written to be
-fast and with a low memory footprint. As a result, Say is way faster than most
-logging libraries and is even faster than the standard library:
-
-```
-BenchmarkStd-4        2000000     629 ns/op     32 B/op    2 allocs/op
-BenchmarkSay-4       10000000     163 ns/op      0 B/op    0 allocs/op
-
-BenchmarkStdData-4    1000000    1492 ns/op    112 B/op    6 allocs/op
-BenchmarkSayData-4    2000000     960 ns/op     64 B/op    4 allocs/op
-```
-
-## Drawback
-
-Say's main drawback is that you must pipe a listener application to handle logs
-and metrics. That is why Say might not be suited for libraries and distributable
-applications.
-
-Although it is not Say's target use case. It is still possible for an
-application to listen to itself. See
-[this example from the listen package](https://godoc.org/gopkg.in/say.v0/listen#example-SetInput).
-
-However for this kind of use, you might prefer using a logger like
-[log15](https://github.com/inconshreveable/log15) or
-[logrus](https://github.com/Sirupsen/logrus).
 
 
 ## License

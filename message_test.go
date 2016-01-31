@@ -1,43 +1,35 @@
-package listen
+package say
 
 import (
 	"bytes"
+	"sync"
 	"testing"
 	"time"
-
-	"gopkg.in/say.v0"
 )
 
-func init() {
-	now = func() time.Time {
-		return time.Date(2015, 11, 25, 15, 47, 0, 0, time.UTC)
-	}
-}
-
-func TestType(t *testing.T) {
+func TestMessageType(t *testing.T) {
 	tests := []test{
-		{func() { say.Init("foo") }, TypeInit},
-		{func() { say.Event("foo") }, TypeEvent},
-		{func() { say.Events("foo", 42) }, TypeEvent},
-		{func() { say.Value("foo", 42) }, TypeValue},
-		{func() { say.NewTiming().Say("foo") }, TypeValue},
-		{func() { say.Gauge("foo", 42) }, TypeGauge},
-		{func() { say.Debug("foo") }, TypeDebug},
-		{func() { say.Info("foo") }, TypeInfo},
-		{func() { say.Warning("foo") }, TypeWarning},
-		{func() { say.Error("foo") }, TypeError},
-		{func() { say.Fatal("foo") }, TypeFatal},
+		{func() { Event("foo") }, TypeEvent},
+		{func() { Events("foo", 42) }, TypeEvent},
+		{func() { Value("foo", 42) }, TypeValue},
+		{func() { NewTiming().Say("foo") }, TypeValue},
+		{func() { Gauge("foo", 42) }, TypeGauge},
+		{func() { Debug("foo") }, TypeDebug},
+		{func() { Info("foo") }, TypeInfo},
+		{func() { Warning("foo") }, TypeWarning},
+		{func() { Error("foo") }, TypeError},
+		{func() { Fatal("foo") }, TypeFatal},
 	}
 
 	testMessage(t, tests, func(m *Message, want interface{}) {
 		typ := want.(Type)
-		if m.Type() != typ {
-			t.Errorf("Message.Type() = %q, want %q", m.Type(), typ)
+		if m.Type != typ {
+			t.Errorf("Message.Type = %q, want %q", m.Type, typ)
 		}
 	})
 }
 
-func TestContent(t *testing.T) {
+func TestMessageContent(t *testing.T) {
 	strings := []struct {
 		input, want string
 	}{
@@ -52,29 +44,29 @@ func TestContent(t *testing.T) {
 		{"\n\n", "\n\n"},
 		{"\t", "\t"},
 		{"|", "|"},
-		{"\t|", " |"},
+		{"\t|", "\t|"},
 	}
 
 	tests := make([]test, len(strings))
 	for i, s := range strings {
 		s := s
-		tests[i] = test{func() { say.Info(s.input) }, s.want}
+		tests[i] = test{func() { Info(s.input) }, s.want}
 	}
 	testMessage(t, tests, func(m *Message, want interface{}) {
 		content := want.(string)
-		if m.Content() != content {
-			t.Errorf("Message.Content() = %q, want %q", m.Content(), content)
+		if m.Content != content {
+			t.Errorf("Message.Content = %q, want %q", m.Content, content)
 		}
 	})
 }
 
-func TestKey(t *testing.T) {
+func TestMessageKey(t *testing.T) {
 	tests := []test{
-		{func() { say.Event("foo") }, "foo"},
-		{func() { say.Events(`fo"o`, 42) }, `fo"o`},
-		{func() { say.Value("foo bar", 42) }, "foo bar"},
-		{func() { say.NewTiming().Say("app.host.key") }, "app.host.key"},
-		{func() { say.Gauge("#!€", 42) }, "#!€"},
+		{func() { Event("foo") }, "foo"},
+		{func() { Events(`fo"o`, 42) }, `fo"o`},
+		{func() { Value("foo bar", 42) }, "foo bar"},
+		{func() { NewTiming().Say("app.host.key") }, "app.host.key"},
+		{func() { Gauge("#!€", 42) }, "#!€"},
 	}
 
 	testMessage(t, tests, func(m *Message, want interface{}) {
@@ -85,13 +77,13 @@ func TestKey(t *testing.T) {
 	})
 }
 
-func TestValue(t *testing.T) {
+func TestMessageValue(t *testing.T) {
 	tests := []test{
-		{func() { say.Event("foo") }, ""},
-		{func() { say.Events(`fo"o`, 42) }, "42"},
-		{func() { say.Value("foo bar", 17.6) }, "17.6"},
-		{func() { say.NewTiming().Say("app.host.key") }, "5ms"},
-		{func() { say.Gauge("#!€", -25.5) }, "-25.5"},
+		{func() { Event("foo") }, ""},
+		{func() { Events(`fo"o`, 42) }, "42"},
+		{func() { Value("foo bar", 17.6) }, "17.6"},
+		{func() { NewTiming().Say("app.host.key") }, "0ms"},
+		{func() { Gauge("#!€", -25.5) }, "-25.5"},
 	}
 
 	testMessage(t, tests, func(m *Message, want interface{}) {
@@ -102,19 +94,19 @@ func TestValue(t *testing.T) {
 	})
 }
 
-func TestInt(t *testing.T) {
+func TestMessageInt(t *testing.T) {
 	type result struct {
 		i int
 		b bool
 	}
 
 	tests := []test{
-		{func() { say.Event("foo") }, result{1, true}},
-		{func() { say.Events(`fo"o`, 42) }, result{42, true}},
-		{func() { say.Value("foo bar", 17.6) }, result{17, true}},
-		{func() { say.NewTiming().Say("app.host.key") }, result{5, true}},
-		{func() { say.Gauge("#!€", -25.5) }, result{-25, true}},
-		{func() { say.Info("hello") }, result{0, false}},
+		{func() { Event("foo") }, result{1, true}},
+		{func() { Events(`fo"o`, 42) }, result{42, true}},
+		{func() { Value("foo bar", 17.6) }, result{17, true}},
+		{func() { NewTiming().Say("app.host.key") }, result{0, true}},
+		{func() { Gauge("#!€", -25.5) }, result{-25, true}},
+		{func() { Info("hello") }, result{0, false}},
 	}
 
 	testMessage(t, tests, func(m *Message, want interface{}) {
@@ -127,19 +119,19 @@ func TestInt(t *testing.T) {
 	})
 }
 
-func TestFloat64(t *testing.T) {
+func TestMessageFloat64(t *testing.T) {
 	type result struct {
 		f float64
 		b bool
 	}
 
 	tests := []test{
-		{func() { say.Event("foo") }, result{1, true}},
-		{func() { say.Events(`fo"o`, 42) }, result{42, true}},
-		{func() { say.Value("foo bar", 17.6) }, result{17.6, true}},
-		{func() { say.NewTiming().Say("app.host.key") }, result{5, true}},
-		{func() { say.Gauge("#!€", -25.5) }, result{-25.5, true}},
-		{func() { say.Info("hello") }, result{0, false}},
+		{func() { Event("foo") }, result{1, true}},
+		{func() { Events(`fo"o`, 42) }, result{42, true}},
+		{func() { Value("foo bar", 17.6) }, result{17.6, true}},
+		{func() { NewTiming().Say("app.host.key") }, result{0, true}},
+		{func() { Gauge("#!€", -25.5) }, result{-25.5, true}},
+		{func() { Info("hello") }, result{0, false}},
 	}
 
 	testMessage(t, tests, func(m *Message, want interface{}) {
@@ -152,19 +144,19 @@ func TestFloat64(t *testing.T) {
 	})
 }
 
-func TestDuration(t *testing.T) {
+func TestMessageDuration(t *testing.T) {
 	type result struct {
 		d time.Duration
 		b bool
 	}
 
 	tests := []test{
-		{func() { say.Event("foo") }, result{0, false}},
-		{func() { say.Events(`fo"o`, 42) }, result{0, false}},
-		{func() { say.Value("foo bar", 17.6) }, result{0, false}},
-		{func() { say.NewTiming().Say("app.host.key") }, result{5 * time.Millisecond, true}},
-		{func() { say.Gauge("#!€", -25.5) }, result{0, false}},
-		{func() { say.Info("hello") }, result{0, false}},
+		{func() { Event("foo") }, result{0, false}},
+		{func() { Events(`fo"o`, 42) }, result{0, false}},
+		{func() { Value("foo bar", 17.6) }, result{0, false}},
+		{func() { NewTiming().Say("app.host.key") }, result{0, true}},
+		{func() { Gauge("#!€", -25.5) }, result{0, false}},
+		{func() { Info("hello") }, result{0, false}},
 	}
 
 	testMessage(t, tests, func(m *Message, want interface{}) {
@@ -177,8 +169,8 @@ func TestDuration(t *testing.T) {
 	})
 }
 
-func TestError(t *testing.T) {
-	log := new(say.Logger)
+func TestMessageError(t *testing.T) {
+	log := new(Logger)
 
 	tests := []test{
 		{func() { log.Event("foo") }, ""},
@@ -197,12 +189,14 @@ func TestError(t *testing.T) {
 	})
 }
 
-func TestStackTrace(t *testing.T) {
+func TestMessageStackTrace(t *testing.T) {
+	SkipStackFrames(0)
+	defer SkipStackFrames(-1)
 	tests := []test{
-		{func() { say.Event("foo") }, false},
-		{func() { say.Info("hello") }, false},
-		{func() { say.Error("foo") }, true},
-		{func() { say.Fatal("foo\n\nbar\n") }, true},
+		{func() { Event("foo") }, false},
+		{func() { Info("hello") }, false},
+		{func() { Error("foo") }, true},
+		{func() { Fatal("foo\n\nbar\n") }, true},
 	}
 
 	testMessage(t, tests, func(m *Message, want interface{}) {
@@ -216,28 +210,8 @@ func TestStackTrace(t *testing.T) {
 	})
 }
 
-func TestDataString(t *testing.T) {
-	tests := []test{
-		{func() { say.Info("foo", "int", 1) }, "int=1"},
-		{func() { say.Info("foo", "foo", "bar") }, `foo="bar"`},
-		{func() { say.Info("foo", "a", `b="c"`) }, `a="b=\"c\""`},
-		{func() { say.Info("foo", "a", "\n") }, "a=\"\\n\""},
-		{func() { say.Info("foo", "ok", true) }, "ok=true"},
-		{func() { say.Info("foo", "ko", false) }, "ko=false"},
-		{func() { say.Info("foo", "i", 5, "f", -12.5) }, "i=5 f=-12.5"},
-	}
-
-	testMessage(t, tests, func(m *Message, want interface{}) {
-		data := want.(string)
-		got := m.DataString()
-		if got != data {
-			t.Errorf("Message.DataString() = %q, want %q", got, data)
-		}
-	})
-}
-
 func TestMessageWriteTo(t *testing.T) {
-	log := new(say.Logger)
+	log := new(Logger)
 	log.SkipStackFrames(-1)
 	tests := []test{
 		{func() { log.Event("foo") },
@@ -249,7 +223,7 @@ func TestMessageWriteTo(t *testing.T) {
 		{func() { log.Gauge(`foo"`, -35) },
 			"2015-11-25 15:47:00.000 GAUGE foo\":-35\n"},
 		{func() { log.NewTiming().Say("foo") },
-			"2015-11-25 15:47:00.000 VALUE foo:5ms\n"},
+			"2015-11-25 15:47:00.000 VALUE foo:0ms\n"},
 		{func() { log.Debug("foo") },
 			"2015-11-25 15:47:00.000 DEBUG foo\n"},
 		{func() { log.Info("foo", "a", "b") },
@@ -260,8 +234,6 @@ func TestMessageWriteTo(t *testing.T) {
 			"2015-11-25 15:47:00.000 ERROR foo\nbar\t| ok=true ko=false\n"},
 		{func() { log.Fatal("foo\tbar\n") },
 			"2015-11-25 15:47:00.000 FATAL foo\tbar\n\n"},
-		{func() { log.Init("my_app", "version", 1.1) },
-			"2015-11-25 15:47:00.000 INIT  my_app\t| version=1.1\n"},
 	}
 
 	buf := new(bytes.Buffer)
@@ -282,7 +254,7 @@ func TestMessageWriteTo(t *testing.T) {
 }
 
 func TestMessageWriteJSONTo(t *testing.T) {
-	log := new(say.Logger)
+	log := new(Logger)
 	log.SkipStackFrames(-1)
 	tests := []test{
 		{func() { log.Event("foo") },
@@ -294,7 +266,7 @@ func TestMessageWriteJSONTo(t *testing.T) {
 		{func() { log.Gauge(`foo"`, -35, "foo", "bar", "foo", "baz") },
 			"{\"timestamp\": \"2015-11-25T15:47:00Z\", \"type\": \"GAUGE\", \"content\": \"foo\\\":-35\", \"foo\": \"baz\"}\n"},
 		{func() { log.NewTiming().Say("foo", "timestamp", "skip") },
-			"{\"timestamp\": \"2015-11-25T15:47:00Z\", \"type\": \"VALUE\", \"content\": \"foo:5ms\"}\n"},
+			"{\"timestamp\": \"2015-11-25T15:47:00Z\", \"type\": \"VALUE\", \"content\": \"foo:0ms\"}\n"},
 		{func() { log.Debug("foo", "type", "skip") },
 			"{\"timestamp\": \"2015-11-25T15:47:00Z\", \"type\": \"DEBUG\", \"content\": \"foo\"}\n"},
 		{func() { log.Info("foo", "a", "b") },
@@ -305,8 +277,6 @@ func TestMessageWriteJSONTo(t *testing.T) {
 			"{\"timestamp\": \"2015-11-25T15:47:00Z\", \"type\": \"ERROR\", \"content\": \"foo\\nbar\", \"ok\": true, \"ko\": false}\n"},
 		{func() { log.Fatal("foo\tbar\n") },
 			"{\"timestamp\": \"2015-11-25T15:47:00Z\", \"type\": \"FATAL\", \"content\": \"foo\\tbar\\n\"}\n"},
-		{func() { log.Init("my_app", "version", 1.1) },
-			"{\"timestamp\": \"2015-11-25T15:47:00Z\", \"type\": \"INIT\", \"content\": \"my_app\", \"version\": 1.1}\n"},
 	}
 
 	buf := new(bytes.Buffer)
@@ -324,4 +294,35 @@ func TestMessageWriteJSONTo(t *testing.T) {
 		}
 		buf.Reset()
 	})
+}
+
+type test struct {
+	f    func()
+	want interface{}
+}
+
+func testMessage(t *testing.T, tests []test, h func(*Message, interface{})) {
+	now = func() time.Time {
+		return time.Date(2015, 11, 25, 15, 47, 0, 0, time.UTC)
+	}
+
+	var wg sync.WaitGroup
+	n := 0
+	SetDebug(true)
+	SetListener(func(m *Message) {
+		if n >= len(tests) {
+			t.Fatal("Listen received too many messages.")
+		}
+		h(m, tests[n].want)
+		n++
+		wg.Done()
+	})
+	defer SetListener(nil)
+	defer SetDebug(false)
+
+	for _, test := range tests {
+		wg.Add(1)
+		test.f()
+	}
+	wg.Wait()
 }
