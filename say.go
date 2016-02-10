@@ -3,6 +3,7 @@ package say
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"log"
 	"runtime"
 	"sync"
@@ -73,6 +74,16 @@ func (l *Logger) Event(name string, data ...interface{}) {
 	l.send(TypeEvent, name, data)
 }
 
+// Eventf prints a formatted EVENT message. Use it to track the occurence of a particular
+// event (e.g. a user signs up, a database query fails).
+func (l *Logger) Eventf(name string, data ...interface{}) {
+	if err := isKeyValid(name); err != nil {
+		l.sendError(err, 1)
+		return
+	}
+	l.send(TypeEvent, fmt.Sprintf(name, data...), []interface{})
+}
+
 func isKeyValid(key string) error {
 	if key == "" {
 		return errKeyEmpty
@@ -92,6 +103,12 @@ func Event(name string, data ...interface{}) {
 	defaultLogger.Event(name, data...)
 }
 
+// Eventf prints a formatted EVENT message. Use it to track the occurence of a particular
+// event (e.g. a user signs up, a database query fails).
+func Eventf(name string, data ...interface{}) {
+	defaultLogger.Eventf(name, data...)
+}
+
 // Events prints an EVENT message with an increment value. Use it to track the
 // occurence of a batch of events (e.g. how many new files were uploaded).
 func (l *Logger) Events(name string, incr int, data ...interface{}) {
@@ -107,10 +124,31 @@ func (l *Logger) Events(name string, incr int, data ...interface{}) {
 	l.send(TypeEvent, buf.String(), data)
 }
 
+// Events prints a formatted EVENT message with an increment value. Use it to track the
+// occurence of a batch of events (e.g. how many new files were uploaded).
+func (l *Logger) Eventsf(name string, incr int, data ...interface{}) {
+	if err := isKeyValid(name); err != nil {
+		l.sendError(err, 1)
+		return
+	}
+
+	buf := getBuffer()
+	buf.appendString(fmt.Sprintf(name, data...))
+	buf.appendByte(':')
+	buf.appendInt(int64(incr))
+	l.send(TypeEvent, buf.String(), []interface{}{})
+}
+
 // Events prints an EVENT message with an increment value. Use it to track the
 // occurence of a batch of events (e.g. how many new files were uploaded).
 func Events(name string, incr int, data ...interface{}) {
 	defaultLogger.Events(name, incr, data...)
+}
+
+// Eventsf prints a formatted EVENT message with an increment value. Use it to track the
+// occurence of a batch of events (e.g. how many new files were uploaded).
+func Eventsf(name string, incr int, data ...interface{}) {
+	defaultLogger.Eventsf(name, incr, data...)
 }
 
 // Value prints a VALUE message. Use it to measure a value associated with a
@@ -199,9 +237,22 @@ func (l *Logger) Debug(msg string, data ...interface{}) {
 	l.send(TypeDebug, msg, data)
 }
 
+// Debug prints a formatted DEBUG message only if the debug mode is on.
+func (l *Logger) Debugf(msg string, data ...interface{}) {
+	if !debug {
+		return
+	}
+	l.send(TypeDebug, fmt.Sprintf(msg, data...), []interface{}{})
+}
+
 // Debug prints a DEBUG message only if the debug mode is on.
 func Debug(msg string, data ...interface{}) {
 	defaultLogger.Debug(msg, data...)
+}
+
+// Debugf prints a formatted DEBUG message only if the debug mode is on.
+func Debugf(msg string, data ...interface{}) {
+	defaultLogger.Debugf(msg, data...)
 }
 
 // Info prints an INFO message.
@@ -209,9 +260,19 @@ func (l *Logger) Info(msg string, data ...interface{}) {
 	l.send(TypeInfo, msg, data)
 }
 
+// Info prints a formatted INFO message.
+func (l *Logger) Infof(msg string, data ...interface{}) {
+	l.send(TypeInfo, fmt.Sprintf(msg, data...), []interface{}{})
+}
+
 // Info prints an INFO message.
 func Info(msg string, data ...interface{}) {
 	defaultLogger.Info(msg, data...)
+}
+
+// Infof prints a formatted INFO message.
+func Infof(msg string, data ...interface{}) {
+	defaultLogger.Infof(msg, data...)
 }
 
 // Warning prints a WARNING message.
