@@ -48,6 +48,14 @@ func TestEvents(t *testing.T) {
 	})
 }
 
+func TestEventsf(t *testing.T) {
+	expect(t, func() {
+		Eventsf("test.%s", 5, "event")
+	}, []string{
+		"EVENT test.event:5",
+	})
+}
+
 func TestValue(t *testing.T) {
 	expect(t, func() {
 		Value("test.value", 10)
@@ -113,6 +121,16 @@ func TestDebug(t *testing.T) {
 	})
 }
 
+func TestDebugf(t *testing.T) {
+	expect(t, func() {
+		SetDebug(true)
+		Debugf("foo%s", "bar")
+		SetDebug(false)
+	}, []string{
+		"DEBUG foobar",
+	})
+}
+
 func TestInfo(t *testing.T) {
 	expect(t, func() {
 		Info("Test message!")
@@ -120,6 +138,14 @@ func TestInfo(t *testing.T) {
 	}, []string{
 		"INFO  Test message!",
 		"INFO  ",
+	})
+}
+
+func TestInfof(t *testing.T) {
+	expect(t, func() {
+		Infof("Test %s!", "message")
+	}, []string{
+		"INFO  Test message!",
 	})
 }
 
