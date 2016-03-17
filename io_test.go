@@ -16,8 +16,7 @@ func TestCapturePanic(t *testing.T) {
 
 func TestLoggerCapturePanic(t *testing.T) {
 	expect(t, func() {
-		log := new(Logger)
-		log.SkipStackFrames(-1)
+		log := NewLogger(SkipStackFrames(-1))
 		defer log.CapturePanic()
 		panic("oops")
 	}, []string{

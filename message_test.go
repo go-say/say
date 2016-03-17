@@ -177,7 +177,7 @@ func TestMessageError(t *testing.T) {
 		{func() { log.Info("hello") }, ""},
 		{func() { log.Error("foo") }, "foo"},
 		{func() { log.Fatal("foo\n\nbar\n") }, "foo\n\nbar\n"},
-		{func() { log.SkipStackFrames(-1); log.Error("foo") }, "foo"},
+		{func() { log.Error("foo") }, "foo"},
 	}
 
 	testMessage(t, tests, func(m *Message, want interface{}) {
@@ -190,8 +190,8 @@ func TestMessageError(t *testing.T) {
 }
 
 func TestMessageStackTrace(t *testing.T) {
-	SkipStackFrames(0)
-	defer SkipStackFrames(-1)
+	DisableStackTraces(false)
+	defer DisableStackTraces(true)
 	tests := []test{
 		{func() { Event("foo") }, false},
 		{func() { Info("hello") }, false},
@@ -211,8 +211,7 @@ func TestMessageStackTrace(t *testing.T) {
 }
 
 func TestMessageWriteTo(t *testing.T) {
-	log := new(Logger)
-	log.SkipStackFrames(-1)
+	log := NewLogger(SkipStackFrames(-1))
 	tests := []test{
 		{func() { log.Event("foo") },
 			"2015-11-25 15:47:00.000 EVENT foo\n"},
@@ -254,8 +253,7 @@ func TestMessageWriteTo(t *testing.T) {
 }
 
 func TestMessageWriteJSONTo(t *testing.T) {
-	log := new(Logger)
-	log.SkipStackFrames(-1)
+	log := NewLogger(SkipStackFrames(-1))
 	tests := []test{
 		{func() { log.Event("foo") },
 			"{\"timestamp\": \"2015-11-25T15:47:00Z\", \"type\": \"EVENT\", \"content\": \"foo\"}\n"},

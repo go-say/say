@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	SkipStackFrames(-1)
+	DisableStackTraces(true)
 	exit = func(int) {}
 }
 
@@ -145,8 +145,7 @@ func TestError(t *testing.T) {
 
 func TestLoggerError(t *testing.T) {
 	expect(t, func() {
-		log := new(Logger)
-		log.SkipStackFrames(-1)
+		log := NewLogger(SkipStackFrames(-1))
 		var err error
 		log.Error(err)
 		err = errors.New("Test error")
@@ -218,8 +217,7 @@ func TestTimeHook(t *testing.T) {
 
 func TestInvalidData(t *testing.T) {
 	expect(t, func() {
-		log := new(Logger)
-		log.SkipStackFrames(-1)
+		log := NewLogger(SkipStackFrames(-1))
 		log.Info("foo", "a")
 		log.Event("")
 		log.Event("f\noo:")
@@ -252,8 +250,7 @@ func TestInvalidData(t *testing.T) {
 
 func TestInvalidKeys(t *testing.T) {
 	expect(t, func() {
-		log := new(Logger)
-		log.SkipStackFrames(-1)
+		log := NewLogger(SkipStackFrames(-1))
 		log.Event("")
 		log.Event("\n")
 		log.Event("foo\t")
@@ -266,6 +263,21 @@ func TestInvalidKeys(t *testing.T) {
 		"ERROR " + errKeyInvalid.Error(),
 		"ERROR " + errKeyInvalid.Error(),
 	})
+}
+
+func TestDisableStackTraces(t *testing.T) {
+	buf := new(bytes.Buffer)
+	w := Redirect(buf)
+	defer Redirect(w)
+
+	DisableStackTraces(false)
+	Error("foo")
+	Fatal("bar")
+	DisableStackTraces(true)
+
+	if !bytes.Contains(buf.Bytes(), []byte("TestDisableStackTraces")) {
+		t.Errorf("Stack traces is missing, got:\n%s", buf.Bytes())
+	}
 }
 
 func TestSkipStackFrames(t *testing.T) {
@@ -296,15 +308,9 @@ func testStackFrames(t *testing.T, skip int, mustHave, mustNotHave []string) {
 	w := Redirect(buf)
 	defer Redirect(w)
 
-	log := new(Logger)
-	log.SkipStackFrames(skip)
+	log := NewLogger(SkipStackFrames(skip))
 	log.Error("foo")
 	log.Fatal("bar")
-
-	SkipStackFrames(skip)
-	Error("foo")
-	Fatal("bar")
-	SkipStackFrames(-1)
 
 	mustNotHave = append(mustNotHave, []string{
 		"goroutine",

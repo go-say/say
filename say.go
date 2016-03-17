@@ -24,43 +24,51 @@ type Logger struct {
 	data            Data
 }
 
-// NewLogger creates a new Logger from a parent Logger. The new Logger have the
-// same Data and SkipStackFrames values than the parent Logger.
-func (l *Logger) NewLogger() *Logger {
+// NewLogger creates a new Logger that inherits the Data and SkipStackFrames
+// values from the parent Logger.
+func (l *Logger) NewLogger(opts ...Option) *Logger {
 	log := new(Logger)
 	mu.RLock()
 	log.skipStackFrames = l.skipStackFrames
 	log.data = l.data
 	mu.RUnlock()
+
+	for _, o := range opts {
+		o(log)
+	}
+
 	return log
 }
 
-// NewLogger creates a new Logger that have the same Data and SkipStackFrames
-// values than the package-level Logger.
-func NewLogger() *Logger {
-	return defaultLogger.NewLogger()
+// NewLogger creates a new Logger inherits the Data and SkipStackFrames
+// values from the package-level Logger.
+func NewLogger(opts ...Option) *Logger {
+	return defaultLogger.NewLogger(opts...)
 }
+
+// An Option allows to customize a Logger.
+type Option func(*Logger)
 
 // SkipStackFrames sets the number of stack frames to skip in the Error and
 // Fatal methods. It is 0 by default.
 //
 // A value of -1 disable printing the stack traces with this Logger.
-func (l *Logger) SkipStackFrames(skip int) {
-	mu.Lock()
-	l.skipStackFrames = skip
-	mu.Unlock()
+func SkipStackFrames(skip int) Option {
+	return Option(func(l *Logger) {
+		l.skipStackFrames = skip
+	})
 }
 
-// SkipStackFrames sets the number of stack frames to skip in the Error and
-// Fatal package-level functions. It is 0 by default.
-//
-// A value of -1 disable printing the stack traces with the package-level
-// functions.
-func SkipStackFrames(skip int) {
-	if skip != -1 {
-		skip++
+// DisableStackTraces disables printing the stack traces by default. This can
+// still be
+func DisableStackTraces(b bool) {
+	mu.Lock()
+	if b {
+		defaultLogger.skipStackFrames = -1
+	} else {
+		defaultLogger.skipStackFrames = 1
 	}
-	defaultLogger.SkipStackFrames(skip)
+	mu.Unlock()
 }
 
 // Event prints an EVENT message. Use it to track the occurence of a particular

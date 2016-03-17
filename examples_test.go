@@ -30,7 +30,6 @@ func (w exampleWriter) Write(p []byte) (int, error) {
 
 func init() {
 	say.Redirect(ew)
-	say.SkipStackFrames(-1)
 }
 
 func Example() {
@@ -80,9 +79,15 @@ func ExampleLogger_AddData() {
 }
 
 func ExampleLogger_SkipStackFrames() {
-	log := new(say.Logger)
-	log.SkipStackFrames(-1) // Disable stack traces.
+	log := say.NewLogger(say.SkipStackFrames(-1)) // Disable stack traces.
 	log.Error("Oops")
+	// Output:
+	// ERROR Oops
+}
+
+func ExampleLogger_DisableStackTraces() {
+	say.DisableStackTraces(true) // Disable stack traces.
+	say.Error("Oops")
 	// Output:
 	// ERROR Oops
 }
