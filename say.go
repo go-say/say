@@ -235,42 +235,20 @@ func Warning(v interface{}, data ...interface{}) {
 }
 
 // Error prints an ERROR message with the stack trace.
-//
-// If v is nil, nothing is printed. If v is a func() error, then Error run v
-// and prints an error only if v return a non-nil error.
 func (l *Logger) Error(v interface{}, data ...interface{}) {
 	l.error(TypeError, v, data, 1)
 }
 
 // Error prints an ERROR message with the stack trace.
-//
-// If v is nil, nothing is printed. If v is a func() error, then Error run v
-// and prints an error only if v return a non-nil error.
 func Error(v interface{}, data ...interface{}) {
 	defaultLogger.Error(v, data...)
 }
 
-// Fatal prints a FATAL message with the stack trace.
+// CheckError prints an ERROR message with the stack trace.
 //
-// If v is nil, nothing is printed. If v is a func() error, then Fatal runs v
-// and prints an error only if v returns a non-nil error.
-func (l *Logger) Fatal(v interface{}, data ...interface{}) {
-	l.error(TypeFatal, v, data, 1)
-}
-
-// Fatal prints a FATAL message with the stack trace.
-//
-// If v is nil, nothing is printed. If v is a func() error, then Fatal runs v
-// and prints an error only if v returns a non-nil error.
-func Fatal(v interface{}, data ...interface{}) {
-	defaultLogger.Fatal(v, data...)
-}
-
-func (l *Logger) sendError(err error, skip int) {
-	l.error(TypeError, err, nil, skip+1)
-}
-
-func (l *Logger) error(typ Type, v interface{}, data []interface{}, skip int) {
+// If v is nil, nothing is printed. If v is a func() error, then Error run v
+// and prints an error only if v return a non-nil error.
+func (l *Logger) CheckError(v interface{}, data ...interface{}) {
 	if v == nil {
 		return
 	}
@@ -280,7 +258,32 @@ func (l *Logger) error(typ Type, v interface{}, data []interface{}, skip int) {
 			return
 		}
 	}
+	l.error(TypeError, v, data, 1)
+}
 
+// CheckError prints an ERROR message with the stack trace.
+//
+// If v is nil, nothing is printed. If v is a func() error, then Error run v
+// and prints an error only if v return a non-nil error.
+func CheckError(v interface{}, data ...interface{}) {
+	defaultLogger.CheckError(v, data...)
+}
+
+// Fatal prints a FATAL message with the stack trace.
+func (l *Logger) Fatal(v interface{}, data ...interface{}) {
+	l.error(TypeFatal, v, data, 1)
+}
+
+// Fatal prints a FATAL message with the stack trace.
+func Fatal(v interface{}, data ...interface{}) {
+	defaultLogger.Fatal(v, data...)
+}
+
+func (l *Logger) sendError(err error, skip int) {
+	l.error(TypeError, err, nil, skip+1)
+}
+
+func (l *Logger) error(typ Type, v interface{}, data []interface{}, skip int) {
 	buf := getBuffer()
 	buf.appendValue(v)
 

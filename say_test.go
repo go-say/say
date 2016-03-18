@@ -143,15 +143,15 @@ func TestError(t *testing.T) {
 	})
 }
 
-func TestLoggerError(t *testing.T) {
+func TestCheckError(t *testing.T) {
 	expect(t, func() {
 		log := NewLogger(SkipStackFrames(-1))
 		var err error
-		log.Error(err)
+		log.CheckError(err)
 		err = errors.New("Test error")
-		log.Error(err)
-		log.Error(func() error { return err })
-		log.Error(func() error { return nil })
+		log.CheckError(err)
+		log.CheckError(func() error { return err })
+		log.CheckError(func() error { return nil })
 	}, []string{
 		"ERROR Test error",
 		"ERROR Test error",

@@ -198,29 +198,46 @@ func ExampleWarning() {
 }
 
 func ExampleLogger_Error() {
-	f, err := os.Open("foo.txt")
 	log := new(say.Logger)
-	log.Error(err)           // Print an error only if err is not nil.
-	defer log.Error(f.Close) // Call Close and print the error only if not nil.
+	_, err := os.Open("foo.txt")
+	if err != nil {
+		log.Error(err) // Print an error with the stack trace.
+	}
 }
 
 func ExampleError() {
+	_, err := os.Open("foo.txt")
+	if err != nil {
+		say.Error(err) // Print an error with the stack trace.
+	}
+}
+
+func ExampleLogger_CheckError() {
 	f, err := os.Open("foo.txt")
-	say.Error(err)           // Print an error only if err is not nil.
-	defer say.Error(f.Close) // Call Close and print the error only if not nil.
+	log := new(say.Logger)
+	log.CheckError(err)           // Print an error only if err is not nil.
+	defer log.CheckError(f.Close) // Call Close and print the error if not nil.
+}
+
+func ExampleCheckError() {
+	f, err := os.Open("foo.txt")
+	say.CheckError(err)           // Print an error only if err is not nil.
+	defer say.CheckError(f.Close) // Call Close and print the error if not nil.
 }
 
 func ExampleLogger_Fatal() {
-	f, err := os.Open("foo.txt")
 	log := new(say.Logger)
-	log.Fatal(err)           // Print an error only if err is not nil.
-	defer log.Fatal(f.Close) // Call Close and print the error only if not nil.
+	_, err := os.Open("foo.txt")
+	if err != nil {
+		log.Fatal(err) // Print a fatal error with the stack trace.
+	}
 }
 
 func ExampleFatal() {
-	f, err := os.Open("foo.txt")
-	say.Fatal(err)           // Print an error only if err is not nil.
-	defer say.Fatal(f.Close) // Call Close and print the error only if not nil.
+	_, err := os.Open("foo.txt")
+	if err != nil {
+		say.Fatal(err) // Print a fatal error with the stack trace.
+	}
 }
 
 func ExampleLogger_CapturePanic() {
