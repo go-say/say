@@ -172,6 +172,18 @@ func (t Timing) Get() time.Duration {
 	return now().Sub(t.start)
 }
 
+// Time prints a VALUE message with the duration in milliseconds of running f.
+func (l *Logger) Time(name string, f func(), data ...interface{}) {
+	t := l.NewTiming()
+	f()
+	t.Say(name, data...)
+}
+
+// Time prints a VALUE message with the duration in milliseconds of running f.
+func Time(name string, f func(), data ...interface{}) {
+	defaultLogger.Time(name, f, data...)
+}
+
 // Gauge prints a GAUGE message. Use it to capture the current value of
 // something that changes over time (e.g. number of active goroutines, number of
 // connected users)

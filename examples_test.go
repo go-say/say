@@ -139,6 +139,23 @@ func ExampleTiming_Say() {
 	// VALUE duration:17ms
 }
 
+func ExampleTime() {
+	say.Time("duration", func() {
+		// The code that needs to be timed.
+	})
+	// Output:
+	// VALUE duration:17ms
+}
+
+func ExampleLogger_Time() {
+	log := new(say.Logger)
+	log.Time("duration", func() {
+		// The code that needs to be timed.
+	})
+	// Output:
+	// VALUE duration:17ms
+}
+
 func ExampleLogger_Gauge() {
 	log := new(say.Logger)
 	log.Gauge("connected_users", 73)
